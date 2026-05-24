@@ -44,6 +44,8 @@ The Discord adapter uses [discord.py](https://discordpy.readthedocs.io/). Operat
 
 Unknown users → pending identity link, no orchestrator call. Known users → forwarded as a normal chat turn with `MessageSource{platform="discord", channelId, isDirectMessage}`.
 
+End-to-end setup walkthrough (creating the Discord application, getting a token, inviting the bot, wiring it into Eugene, approving the first user): **[docs/discord-setup.md](docs/discord-setup.md)**.
+
 ## License
 
 Apache 2.0.
