@@ -102,41 +102,47 @@ In the background, the connector filed a **PendingIdentityLink** on the identity
 
 ### Approve the link
 
-In v0.2 the approval UI hasn't shipped yet, so this is API-only. From a shell with operator credentials:
+Open the UI → **Config** → **Identity** tab → **Pending links** sub-tab. The pending link from your DM appears as a row showing the platform (`discord`), your Discord display name or handle, and the message that triggered the link.
+
+Click the row to expand it. You'll see two approval modes:
+
+- **Create a new person** — used for everyone other than yourself. Type the display name and an optional relationship note ("my wife", "dev-banter channel regular"). The note is surfaced into Eugene's per-hemisphere prompts as top-level relationship context, so make it useful.
+- **Alias onto an existing person** — used to claim YOUR OWN Discord identity into your operator Person record (so Eugene's per-person memory stays unified across Discord and the local UI). Pick the operator entry from the dropdown.
+
+Click **Approve**. The pending count on the Pending Links tab updates immediately.
+
+You can also click **Reject** if the request was a mistake (or spam). The rejection is final — if the Discord user messages the bot again, a fresh pending link gets filed.
+
+DM the bot again. It now recognizes you and routes the message through the bicameral loop.
+
+#### Fallback: approving via curl
+
+If the UI isn't reachable (you're SSH'd in, the UI dev server is down, etc.), the same actions are available via the identity API:
 
 ```bash
 # List pending links
 curl -H "Authorization: Bearer $OPERATOR_TOKEN" \
   http://127.0.0.1:8084/v1/identity/links/pending
 
-# Approve — either alias onto your existing operator person (recommended for yourself):
+# Approve — alias onto an existing person:
 curl -X POST \
   -H "Authorization: Bearer $OPERATOR_TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"linkAsPersonId": "<your operator personId>"}' \
+  -d '{"linkAsPersonId": "<personId>"}' \
   http://127.0.0.1:8084/v1/identity/links/pending/<link-id>/approve
 
-# OR create a new person record (for someone other than yourself):
+# OR create a new person record:
 curl -X POST \
   -H "Authorization: Bearer $OPERATOR_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"displayName": "Sarah", "relationshipNote": "high school friend"}' \
   http://127.0.0.1:8084/v1/identity/links/pending/<link-id>/approve
-```
 
-Your operator `personId` is the `personId` whose `isOperator: true` — find it via `GET /v1/identity/persons`.
-
-After approval, DM the bot again. It now recognizes you and routes the message through the bicameral loop.
-
-To reject a link instead:
-
-```bash
+# Reject:
 curl -X POST \
   -H "Authorization: Bearer $OPERATOR_TOKEN" \
   http://127.0.0.1:8084/v1/identity/links/pending/<link-id>/reject
 ```
-
-The rejection is final — the pending link disappears. If the Discord user messages the bot again, a fresh pending link gets filed.
 
 ## 6. Channel allowlist + DM semantics
 
@@ -175,7 +181,6 @@ The rejection is final — the pending link disappears. If the Discord user mess
 - **No slash commands** — only natural-language DMs and @-mentions.
 - **No status / typing indicator** — Eugene doesn't show "is typing…" while the bicameral loop runs.
 - **One adapter per Discord application** — if you want multiple Discord bots (e.g. one per server with different personas), create multiple Discord applications and configure them as separate adapters in the UI.
-- **Pending-link approval is API-only** — the UI panel for link approval lands in v0.3. v0.2 operators run the curl commands in §5.
 
 ## 10. Where things live (for debugging)
 
