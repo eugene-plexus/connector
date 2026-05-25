@@ -60,10 +60,14 @@ log = logging.getLogger(__name__)
 
 # Static reply to an unknown Discord user. Kept terse — the operator
 # decides whether to authorize the link, this just tells the human
-# what's happening.
+# what's happening. The wording explicitly says "your account" rather
+# than "this link" (which several operators read as referring to the
+# Discord connector / a URL rather than the identity-binding link
+# being filed for approval).
 _UNKNOWN_USER_REPLY = (
-    "Hi — I don't recognize you yet. Ask the operator to authorize this "
-    "link from the Eugene Plexus UI."
+    "Hi — I don't recognize you yet. The operator needs to approve "
+    "your account in the Eugene Plexus UI (Identity → Pending) before "
+    "I can chat with you."
 )
 
 
@@ -401,15 +405,22 @@ class DiscordAdapter:
             isDirectMessage=is_dm,
         )
 
-        reply_text = await self._hooks.send_to_orchestrator(
-            OrchestratorRequest(
-                person_id=person_id,
-                content=content,
-                conversation_id=None,  # v0.2: each message starts a fresh conversation
-                source=source,
-                channel_context=channel_context,
+        # Show the Discord-native "is typing…" indicator while the
+        # bicameral loop runs. Bicameral turns can take 5-30s; without
+        # this the user is left wondering if the bot is dead. The
+        # indicator auto-clears when we exit the context manager (or
+        # send a message, whichever comes first), so there's no
+        # cleanup to worry about if send_to_orchestrator raises.
+        async with message.channel.typing():
+            reply_text = await self._hooks.send_to_orchestrator(
+                OrchestratorRequest(
+                    person_id=person_id,
+                    content=content,
+                    conversation_id=None,  # v0.2: each message starts a fresh conversation
+                    source=source,
+                    channel_context=channel_context,
+                )
             )
-        )
 
         await message.channel.send(reply_text)
 

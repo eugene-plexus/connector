@@ -59,6 +59,22 @@ class _FakeChannel:
 
         return _gen()
 
+    def typing(self) -> "_FakeTypingContext":
+        """Stand-in for `discord.abc.Messageable.typing()` — the async
+        context manager that triggers the platform's "is typing…"
+        indicator. Real implementation pings Discord on entry; the
+        adapter wraps it around long-running orchestrator calls so the
+        user isn't left wondering if the bot is dead."""
+        return _FakeTypingContext()
+
+
+class _FakeTypingContext:
+    async def __aenter__(self) -> "_FakeTypingContext":
+        return self
+
+    async def __aexit__(self, *exc: Any) -> None:
+        return None
+
 
 @dataclass
 class _FakeMessage:
