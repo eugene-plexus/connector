@@ -15,6 +15,7 @@ from typing import Any
 import yaml
 
 from ._generated.common_models import (
+    ComponentKind,
     ConfigDocument,
     ConfigField,
     ConfigFieldError,
@@ -32,29 +33,31 @@ CATEGORY_LABELS: dict[str, str] = {
 FIELDS: list[ConfigField] = [
     ConfigField(
         key="orchestratorUrl",
-        label="Orchestrator URL",
+        label="Orchestrator",
         description=(
-            "HTTP base of the running `eugene-plexus/orchestrator` "
-            "service. The connector POSTs every inbound platform "
-            "message here as a `ChatRequest`."
+            "Which `eugene-plexus/orchestrator` instance the connector "
+            "POSTs every inbound platform message to as a `ChatRequest`. "
+            "Sourced from the watchdog topology."
         ),
         category="topology",
         valueType=ConfigValueType.url,
+        componentKindHint=ComponentKind.orchestrator,
         default="http://127.0.0.1:8080",
         required=True,
         requiresRestart=True,
     ),
     ConfigField(
         key="identityUrl",
-        label="Identity URL",
+        label="Identity",
         description=(
-            "HTTP base of the running `eugene-plexus/identity` "
-            "service. Adapters call this to resolve known platform "
-            "users to `personId` and to file PendingIdentityLink for "
-            "unknown ones."
+            "Which `eugene-plexus/identity` instance adapters call to "
+            "resolve known platform users to `personId` and to file "
+            "PendingIdentityLink for unknown ones. Sourced from the "
+            "watchdog topology."
         ),
         category="topology",
         valueType=ConfigValueType.url,
+        componentKindHint=ComponentKind.identity,
         default="http://127.0.0.1:8084",
         required=True,
         requiresRestart=True,
