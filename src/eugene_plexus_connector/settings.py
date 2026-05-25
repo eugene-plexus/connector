@@ -55,6 +55,14 @@ class Settings(BaseSettings):
     of adapter-config bot tokens at rest; currently captured but not
     consumed."""
 
+    watchdog_url: str = "http://127.0.0.1:8079"
+    """Watchdog endpoint used to auto-resolve peer URLs
+    (orchestratorUrl, identityUrl) when not explicitly set in config.
+    The watchdog is the source of truth for body-component topology;
+    duplicating URLs in every component's config is the OpenClaw-style
+    trap. Override with EUGENE_PLEXUS_CONNECTOR_WATCHDOG_URL on
+    networked deployments where the watchdog isn't on the loopback."""
+
 
 def load_settings() -> Settings:
     return Settings()

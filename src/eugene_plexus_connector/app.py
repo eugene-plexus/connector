@@ -33,6 +33,47 @@ from .store import AdapterRegistry, AdaptersStore
 log = logging.getLogger(__name__)
 
 
+async def resolve_peer_url(
+    *,
+    kind: str,
+    watchdog_url: str,
+    service_token: str | None,
+    timeout_seconds: float = 5.0,
+) -> str | None:
+    """Ask the watchdog where a peer component lives.
+
+    The watchdog is the source of truth for body-component topology;
+    duplicating URLs in every component's config is the OpenClaw-style
+    trap we're avoiding. When the operator hasn't supplied an explicit
+    `orchestratorUrl` / `identityUrl`, the connector resolves them from
+    the watchdog's `/v1/components` at startup.
+
+    Returns the peer's URL (trailing slash stripped) or None when the
+    watchdog can't be reached / has no entry of that kind.
+    """
+    headers = {"Authorization": f"Bearer {service_token}"} if service_token else {}
+    try:
+        async with httpx.AsyncClient(timeout=timeout_seconds) as client:
+            response = await client.get(
+                f"{watchdog_url.rstrip('/')}/v1/components",
+                headers=headers,
+            )
+        if response.status_code >= 400:
+            return None
+        body = response.json()
+    except (httpx.HTTPError, ValueError):
+        return None
+    components = body.get("components") if isinstance(body, dict) else None
+    if not isinstance(components, list):
+        return None
+    for c in components:
+        if isinstance(c, dict) and c.get("kind") == kind:
+            url = c.get("url")
+            if isinstance(url, str) and url:
+                return url.rstrip("/")
+    return None
+
+
 def _build_hooks(
     *,
     orchestrator_client: OrchestratorClient,
@@ -140,17 +181,51 @@ async def _lifespan(app: FastAPI) -> AsyncIterator[None]:
 
     # Outbound clients. Tests can pre-populate `app.state.orchestrator_client`
     # / `app.state.identity_client` to inject fakes.
+    #
+    # Peer-URL resolution order: explicit config value → watchdog
+    # auto-resolve → hardcoded loopback default. Auto-resolve closes
+    # the trap where the wizard didn't PATCH orchestratorUrl /
+    # identityUrl onto the connector and the connector silently runs
+    # against the loopback defaults (which happen to be right for
+    # stock installs but wrong for networked ones).
+    async def _resolve(kind: str, config_key: str, fallback: str) -> str:
+        explicit = str(config_store.get(config_key) or "").strip()
+        if explicit:
+            return explicit
+        if settings.safe_mode:
+            return fallback
+        resolved = await resolve_peer_url(
+            kind=kind,
+            watchdog_url=settings.watchdog_url,
+            service_token=auth_state.service_token,
+        )
+        if resolved:
+            log.info(
+                "auto-resolved %s from watchdog: %s (config field %s was unset)",
+                kind,
+                resolved,
+                config_key,
+            )
+            return resolved
+        return fallback
+
     if not hasattr(app.state, "orchestrator_client"):
+        orchestrator_url = await _resolve(
+            "orchestrator", "orchestratorUrl", "http://127.0.0.1:8080"
+        )
         app.state.orchestrator_client = OrchestratorClient(
-            base_url=str(config_store.get("orchestratorUrl") or "http://127.0.0.1:8080"),
+            base_url=orchestrator_url,
             service_token=auth_state.service_token,
         )
         owns_orchestrator_client = True
     else:
         owns_orchestrator_client = False
     if not hasattr(app.state, "identity_client"):
+        identity_url = await _resolve(
+            "identity", "identityUrl", "http://127.0.0.1:8084"
+        )
         app.state.identity_client = IdentityClient(
-            base_url=str(config_store.get("identityUrl") or "http://127.0.0.1:8084"),
+            base_url=identity_url,
             service_token=auth_state.service_token,
         )
         owns_identity_client = True
