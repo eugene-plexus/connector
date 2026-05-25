@@ -188,6 +188,52 @@ async def test_dm_from_known_user_forwards_to_orchestrator() -> None:
 
 
 @pytest.mark.asyncio
+async def test_orchestrator_failure_sends_fallback_reply() -> None:
+    """Regression for the v0.2 smoke-test silent-failure: when the
+    orchestrator call raises (rate-limit upstream, network blip,
+    hemisphere down), the Discord user MUST get a fallback reply
+    instead of a stopped typing indicator with no message ever
+    arriving."""
+    person_id = uuid4()
+
+    async def resolve(platform: str, account_id: str) -> UUID | None:
+        return person_id
+
+    async def file_link(payload: PendingLinkPayload) -> bool:
+        return True
+
+    async def fail_chat(req: OrchestratorRequest) -> str:
+        raise RuntimeError("simulated upstream 429")
+
+    hooks = AdapterHooks(
+        resolve_person=resolve,
+        file_pending_link=file_link,
+        send_to_orchestrator=fail_chat,
+    )
+    adapter = _adapter(hooks)
+    channel = _FakeChannel(id=42, _is_dm_for_test=True)
+    author = _FakeAuthor(id=1234, name="known", display_name="Known")
+    msg = _FakeMessage(content="hi", author=author, channel=channel)
+
+    # Must NOT raise — the adapter's _handle_message catches and
+    # converts the failure into a Discord-bound fallback reply.
+    await adapter._handle_message(msg)  # type: ignore[arg-type]
+
+    assert len(channel.sent) == 1, (
+        f"expected exactly one fallback reply; got {channel.sent!r}"
+    )
+    reply = channel.sent[0]
+    # Don't assert on exact wording (it can drift); just confirm the
+    # operator-facing diagnostic AND the user-friendly framing are
+    # both present.
+    assert "snag" in reply.lower() or "sorry" in reply.lower(), reply
+    assert "RuntimeError" in reply, (
+        "exception class name should appear so the operator can grep "
+        "the connector log; got: " + reply
+    )
+
+
+@pytest.mark.asyncio
 async def test_channel_message_without_mention_is_ignored() -> None:
     """Messages in channels that don't @-mention the bot must be
     silently ignored — Eugene doesn't speak unless spoken to."""

@@ -411,16 +411,38 @@ class DiscordAdapter:
         # indicator auto-clears when we exit the context manager (or
         # send a message, whichever comes first), so there's no
         # cleanup to worry about if send_to_orchestrator raises.
+        #
+        # Orchestrator failures (upstream LLM rate-limit, network
+        # blip, hemisphere down, etc.) MUST surface as a Discord
+        # message — `on_message`'s blanket try/except above would
+        # otherwise log the error and leave the user staring at a
+        # stopped typing indicator with no reply ever arriving.
+        # Operator gets the full stack trace via log.exception; the
+        # Discord user gets a terse, friendly fallback.
+        reply_text: str
         async with message.channel.typing():
-            reply_text = await self._hooks.send_to_orchestrator(
-                OrchestratorRequest(
-                    person_id=person_id,
-                    content=content,
-                    conversation_id=None,  # v0.2: each message starts a fresh conversation
-                    source=source,
-                    channel_context=channel_context,
+            try:
+                reply_text = await self._hooks.send_to_orchestrator(
+                    OrchestratorRequest(
+                        person_id=person_id,
+                        content=content,
+                        conversation_id=None,  # v0.2: each message starts a fresh conversation
+                        source=source,
+                        channel_context=channel_context,
+                    )
                 )
-            )
+            except Exception as e:  # noqa: BLE001 — surface ANY failure
+                log.exception(
+                    "orchestrator call failed for message from %s "
+                    "(person_id=%s); replying with fallback",
+                    getattr(message.author, "name", "<unknown>"),
+                    person_id,
+                )
+                reply_text = (
+                    "Sorry — I hit a snag on that one. Try again in a "
+                    f"moment? (Operator: check the connector log; "
+                    f"{type(e).__name__})"
+                )
 
         await message.channel.send(reply_text)
 
