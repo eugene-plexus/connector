@@ -148,9 +148,7 @@ class DiscordAdapter:
             except Exception:
                 # Never let an exception bubble into discord.py's
                 # event loop — it terminates the client. Log + carry on.
-                log.exception(
-                    "discord adapter %r failed on_message handler", self.name
-                )
+                log.exception("discord adapter %r failed on_message handler", self.name)
 
     # -------- Construction from spec types --------
 
@@ -214,9 +212,7 @@ class DiscordAdapter:
         allowlist_raw = cfg.get("channelAllowlist") or ""
         if isinstance(allowlist_raw, str):
             channels = [
-                c.strip()
-                for c in allowlist_raw.replace(",", "\n").splitlines()
-                if c.strip()
+                c.strip() for c in allowlist_raw.replace(",", "\n").splitlines() if c.strip()
             ]
         elif isinstance(allowlist_raw, list):
             channels = [str(c).strip() for c in allowlist_raw if str(c).strip()]
@@ -278,9 +274,7 @@ class DiscordAdapter:
         self._status = "disconnected"
 
     def status(self) -> AdapterStatusSnapshot:
-        connected_iso = (
-            self._connected_at.isoformat() if self._connected_at else None
-        )
+        connected_iso = self._connected_at.isoformat() if self._connected_at else None
         return AdapterStatusSnapshot(
             status=self._status,
             connected_at=connected_iso,
@@ -349,10 +343,7 @@ class DiscordAdapter:
             return
         # Skip non-DM, non-mention messages.
         is_dm = self._is_dm(message.channel)
-        is_mention = (
-            self._client.user is not None
-            and self._client.user in message.mentions
-        )
+        is_mention = self._client.user is not None and self._client.user in message.mentions
         if not (is_dm or is_mention):
             return
         # Channel-mention allowlist enforcement (DMs ignore allowlist).
@@ -388,12 +379,8 @@ class DiscordAdapter:
             return
 
         # Known user — gather context and send to orchestrator.
-        channel_id: str | None = (
-            str(message.channel.id) if not is_dm else None
-        )
-        channel_name: str | None = (
-            getattr(message.channel, "name", None) if not is_dm else None
-        )
+        channel_id: str | None = str(message.channel.id) if not is_dm else None
+        channel_name: str | None = getattr(message.channel, "name", None) if not is_dm else None
         channel_context = (
             await self._collect_channel_context(message) if (is_mention and not is_dm) else None
         )
@@ -431,7 +418,7 @@ class DiscordAdapter:
                         channel_context=channel_context,
                     )
                 )
-            except Exception as e:  # noqa: BLE001 — surface ANY failure
+            except Exception as e:
                 log.exception(
                     "orchestrator call failed for message from %s "
                     "(person_id=%s); replying with fallback",
@@ -461,9 +448,7 @@ class DiscordAdapter:
             content = content.replace(token, "").strip()
         return content
 
-    async def _collect_channel_context(
-        self, message: discord.Message
-    ) -> list[ChannelContextEntry]:
+    async def _collect_channel_context(self, message: discord.Message) -> list[ChannelContextEntry]:
         """Pull the last N messages before the mention as grounding
         context. NOT persisted to Eugene's memory — connector adapters
         ship these as one-time prompt-side context only."""
@@ -474,24 +459,17 @@ class DiscordAdapter:
         try:
             async for prior in message.channel.history(limit=limit, before=message):
                 # Skip the triggering message itself and our own messages.
-                if (
-                    self._client.user is not None
-                    and prior.author.id == self._client.user.id
-                ):
+                if self._client.user is not None and prior.author.id == self._client.user.id:
                     continue
                 entries.append(
                     ChannelContextEntry(
-                        author=str(
-                            getattr(prior.author, "display_name", prior.author)
-                        ),
+                        author=str(getattr(prior.author, "display_name", prior.author)),
                         content=prior.content,
                         timestamp=prior.created_at,
                     )
                 )
         except Exception:
-            log.exception(
-                "discord adapter %r failed channel history fetch", self.name
-            )
+            log.exception("discord adapter %r failed channel history fetch", self.name)
         # discord.py yields newest-first; reverse so context reads
         # chronologically in the prompt.
         return list(reversed(entries))
@@ -500,6 +478,8 @@ class DiscordAdapter:
 # Structural Protocol check at module-load time. Keeps drift between
 # the Protocol and the concrete implementation caught at import.
 _: Adapter
+
+
 def _check_protocol() -> Adapter:
     """Type-only protocol check — never called."""
     raise NotImplementedError

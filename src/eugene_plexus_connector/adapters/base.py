@@ -217,9 +217,7 @@ class Adapter(Protocol):
 # -------- Registry --------
 
 
-def build_adapter(
-    entry: AdapterEntry, hooks: AdapterHooks
-) -> Adapter:
+def build_adapter(entry: AdapterEntry, hooks: AdapterHooks) -> Adapter:
     """Construct an adapter instance from the persisted entry.
 
     Raises `AdapterError(status_code=400, ...)` if the kind isn't
@@ -235,9 +233,7 @@ def build_adapter(
 
     raise AdapterError(
         status_code=400,
-        detail=(
-            f"Unsupported adapter kind {kind_str!r}. v0.2 supports: discord."
-        ),
+        detail=(f"Unsupported adapter kind {kind_str!r}. v0.2 supports: discord."),
     )
 
 

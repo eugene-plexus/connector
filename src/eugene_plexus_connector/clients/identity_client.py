@@ -36,9 +36,7 @@ class IdentityClient:
         service_token: str | None = None,
     ) -> None:
         self._base_url = base_url.rstrip("/")
-        headers = (
-            {"Authorization": f"Bearer {service_token}"} if service_token else None
-        )
+        headers = {"Authorization": f"Bearer {service_token}"} if service_token else None
         self._client = httpx.AsyncClient(
             base_url=self._base_url,
             timeout=httpx.Timeout(timeout_seconds, connect=10.0),
@@ -55,9 +53,7 @@ class IdentityClient:
         body = response.json()
         return [Person.model_validate(p) for p in body.get("persons", [])]
 
-    async def resolve_person_by_alias(
-        self, *, platform: str, account_id: str
-    ) -> UUID | None:
+    async def resolve_person_by_alias(self, *, platform: str, account_id: str) -> UUID | None:
         """Find a personId by `(platform, account_id)` alias. Returns
         None when no alias matches — adapter must file a pending link."""
         persons = await self.list_persons()

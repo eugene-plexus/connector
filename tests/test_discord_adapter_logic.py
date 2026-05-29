@@ -59,7 +59,7 @@ class _FakeChannel:
 
         return _gen()
 
-    def typing(self) -> "_FakeTypingContext":
+    def typing(self) -> _FakeTypingContext:
         """Stand-in for `discord.abc.Messageable.typing()` — the async
         context manager that triggers the platform's "is typing…"
         indicator. Real implementation pings Discord on entry; the
@@ -69,7 +69,7 @@ class _FakeChannel:
 
 
 class _FakeTypingContext:
-    async def __aenter__(self) -> "_FakeTypingContext":
+    async def __aenter__(self) -> _FakeTypingContext:
         return self
 
     async def __aexit__(self, *exc: Any) -> None:
@@ -88,9 +88,7 @@ def _hooks(
     *,
     aliases: dict[tuple[str, str], UUID] | None = None,
     orchestrator_reply: str = "blended",
-) -> tuple[
-    AdapterHooks, list[PendingLinkPayload], list[OrchestratorRequest]
-]:
+) -> tuple[AdapterHooks, list[PendingLinkPayload], list[OrchestratorRequest]]:
     """Build hooks that record all outbound calls into lists."""
     aliases = aliases or {}
     pending: list[PendingLinkPayload] = []
@@ -168,9 +166,7 @@ async def test_dm_from_unknown_user_files_pending_and_replies() -> None:
 @pytest.mark.asyncio
 async def test_dm_from_known_user_forwards_to_orchestrator() -> None:
     person_id = uuid4()
-    hooks, pending, orch_calls = _hooks(
-        aliases={("discord", "1234"): person_id}
-    )
+    hooks, pending, orch_calls = _hooks(aliases={("discord", "1234"): person_id})
     adapter = _adapter(hooks)
     channel = _FakeChannel(id=42, _is_dm_for_test=True)
     author = _FakeAuthor(id=1234, name="known", display_name="Known")
@@ -219,9 +215,7 @@ async def test_orchestrator_failure_sends_fallback_reply() -> None:
     # converts the failure into a Discord-bound fallback reply.
     await adapter._handle_message(msg)  # type: ignore[arg-type]
 
-    assert len(channel.sent) == 1, (
-        f"expected exactly one fallback reply; got {channel.sent!r}"
-    )
+    assert len(channel.sent) == 1, f"expected exactly one fallback reply; got {channel.sent!r}"
     reply = channel.sent[0]
     # Don't assert on exact wording (it can drift); just confirm the
     # operator-facing diagnostic AND the user-friendly framing are
@@ -238,9 +232,7 @@ async def test_channel_message_without_mention_is_ignored() -> None:
     """Messages in channels that don't @-mention the bot must be
     silently ignored — Eugene doesn't speak unless spoken to."""
     person_id = uuid4()
-    hooks, pending, orch_calls = _hooks(
-        aliases={("discord", "1234"): person_id}
-    )
+    hooks, pending, orch_calls = _hooks(aliases={("discord", "1234"): person_id})
     adapter = _adapter(hooks)
     channel = _FakeChannel(id=42, name="general")  # not a DM
     author = _FakeAuthor(id=1234, name="known", display_name="Known")
@@ -262,9 +254,7 @@ async def test_channel_message_without_mention_is_ignored() -> None:
 async def test_channel_mention_respects_allowlist() -> None:
     """A non-allowlisted channel that @-mentions the bot is ignored."""
     person_id = uuid4()
-    hooks, pending, orch_calls = _hooks(
-        aliases={("discord", "1234"): person_id}
-    )
+    hooks, pending, orch_calls = _hooks(aliases={("discord", "1234"): person_id})
     adapter = _adapter(hooks, channelAllowlist="100,200")
     forbidden_channel = _FakeChannel(id=999, name="off-limits")
     author = _FakeAuthor(id=1234, name="known", display_name="Known")
@@ -286,9 +276,7 @@ async def test_channel_mention_respects_allowlist() -> None:
 @pytest.mark.asyncio
 async def test_channel_mention_within_allowlist_forwards() -> None:
     person_id = uuid4()
-    hooks, _pending, orch_calls = _hooks(
-        aliases={("discord", "1234"): person_id}
-    )
+    hooks, _pending, orch_calls = _hooks(aliases={("discord", "1234"): person_id})
     adapter = _adapter(hooks, channelAllowlist="100,200")
     allowed_channel = _FakeChannel(id=100, name="dev-banter")
     author = _FakeAuthor(id=1234, name="known", display_name="Known")
@@ -311,9 +299,7 @@ async def test_channel_mention_within_allowlist_forwards() -> None:
 async def test_self_mention_stripped_from_outbound_content() -> None:
     """The orchestrator receives clean text, not the @<bot> token."""
     person_id = uuid4()
-    hooks, _pending, orch_calls = _hooks(
-        aliases={("discord", "1234"): person_id}
-    )
+    hooks, _pending, orch_calls = _hooks(aliases={("discord", "1234"): person_id})
     adapter = _adapter(hooks)
     channel = _FakeChannel(id=42, _is_dm_for_test=True)
     author = _FakeAuthor(id=1234, name="known", display_name="Known")

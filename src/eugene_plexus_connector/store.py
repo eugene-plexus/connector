@@ -108,9 +108,7 @@ class AdapterRegistry:
         self._adapters: dict[str, Adapter] = {}
         self._lock = asyncio.Lock()
 
-    async def start(
-        self, *, entry: AdapterEntry, hooks: AdapterHooks
-    ) -> Adapter:
+    async def start(self, *, entry: AdapterEntry, hooks: AdapterHooks) -> Adapter:
         async with self._lock:
             if entry.name in self._adapters:
                 # Idempotent: starting an already-running adapter is a

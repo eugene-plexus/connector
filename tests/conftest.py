@@ -108,9 +108,7 @@ class FakeIdentityClient:
     async def list_persons(self) -> list[Any]:
         return []
 
-    async def resolve_person_by_alias(
-        self, *, platform: str, account_id: str
-    ) -> UUID | None:
+    async def resolve_person_by_alias(self, *, platform: str, account_id: str) -> UUID | None:
         return self._aliases.get((platform, account_id))
 
     async def file_pending_link(

@@ -93,8 +93,7 @@ def _build_hooks(
             )
         except httpx.HTTPError as e:
             log.warning(
-                "identity service unreachable while resolving %s:%s: %s "
-                "(treating as unknown user)",
+                "identity service unreachable while resolving %s:%s: %s (treating as unknown user)",
                 platform,
                 account_id,
                 e,
@@ -114,8 +113,7 @@ def _build_hooks(
             )
         except httpx.HTTPError as e:
             log.warning(
-                "identity service unreachable while filing pending link "
-                "for %s:%s: %s",
+                "identity service unreachable while filing pending link for %s:%s: %s",
                 payload.platform,
                 payload.account_id,
                 e,
@@ -131,14 +129,10 @@ def _build_hooks(
             message=req.content,
             personId=req.person_id,
             conversationId=req.conversation_id,
-            source=ChatMessageSource.model_validate(
-                req.source.model_dump(exclude_none=True)
-            ),
+            source=ChatMessageSource.model_validate(req.source.model_dump(exclude_none=True)),
             channelContext=(
                 [
-                    ChatChannelContext.model_validate(
-                        e.model_dump(exclude_none=True)
-                    )
+                    ChatChannelContext.model_validate(e.model_dump(exclude_none=True))
                     for e in req.channel_context
                 ]
                 if req.channel_context
@@ -221,9 +215,7 @@ async def _lifespan(app: FastAPI) -> AsyncIterator[None]:
     else:
         owns_orchestrator_client = False
     if not hasattr(app.state, "identity_client"):
-        identity_url = await _resolve(
-            "identity", "identityUrl", "http://127.0.0.1:8084"
-        )
+        identity_url = await _resolve("identity", "identityUrl", "http://127.0.0.1:8084")
         app.state.identity_client = IdentityClient(
             base_url=identity_url,
             service_token=auth_state.service_token,
@@ -303,6 +295,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     # Per-route deps are applied inside the router so the granular
     # rules are visible alongside the handlers.
     from .routes import adapters as adapter_routes
+
     authorized = [Depends(require_authorized)]
     app.include_router(adapter_routes.router, dependencies=authorized)
 

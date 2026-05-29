@@ -103,9 +103,7 @@ async def get_adapter(request: Request, name: str) -> dict[str, Any]:
     status_code=status.HTTP_201_CREATED,
     dependencies=[Depends(require_operator)],
 )
-async def create_adapter(
-    request: Request, body: AdapterEntry
-) -> dict[str, Any]:
+async def create_adapter(request: Request, body: AdapterEntry) -> dict[str, Any]:
     store, registry, hooks = _ctx(request)
     try:
         store.add(body)
@@ -121,9 +119,7 @@ async def create_adapter(
         except AdapterError as e:
             raise _problem(e.status_code, "adapter start failed", e.detail) from e
         except Exception as e:
-            raise _problem(
-                500, "adapter start failed", f"unexpected error: {e!r}"
-            ) from e
+            raise _problem(500, "adapter start failed", f"unexpected error: {e!r}") from e
     return _status_payload(body, registry)
 
 
@@ -131,9 +127,7 @@ async def create_adapter(
     "/v1/adapters/{name}",
     dependencies=[Depends(require_operator)],
 )
-async def update_adapter(
-    request: Request, name: str, body: AdapterEntry
-) -> dict[str, Any]:
+async def update_adapter(request: Request, name: str, body: AdapterEntry) -> dict[str, Any]:
     store, registry, hooks = _ctx(request)
     if body.name != name:
         raise _problem(
@@ -155,9 +149,7 @@ async def update_adapter(
         except AdapterError as e:
             raise _problem(e.status_code, "adapter restart failed", e.detail) from e
         except Exception as e:
-            raise _problem(
-                500, "adapter restart failed", f"unexpected error: {e!r}"
-            ) from e
+            raise _problem(500, "adapter restart failed", f"unexpected error: {e!r}") from e
     return _status_payload(body, registry)
 
 
@@ -176,9 +168,7 @@ async def delete_adapter(request: Request, name: str) -> Response:
 
 
 @router.get("/v1/adapters/{name}/config/schema", response_model=ConfigSchema)
-async def get_adapter_config_schema(
-    request: Request, name: str
-) -> ConfigSchema:
+async def get_adapter_config_schema(request: Request, name: str) -> ConfigSchema:
     store, _, _ = _ctx(request)
     entry = store.get(name)
     if entry is None:

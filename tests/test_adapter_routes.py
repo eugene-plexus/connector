@@ -91,9 +91,7 @@ def test_get_adapter_returns_404_for_unknown(client: TestClient) -> None:
 def test_patch_adapter_replaces_entry_and_restarts(client: TestClient) -> None:
     from tests.conftest import make_discord_adapter_entry
 
-    create = client.post(
-        "/v1/adapters", json=make_discord_adapter_entry(bot_token="t1")
-    )
+    create = client.post("/v1/adapters", json=make_discord_adapter_entry(bot_token="t1"))
     assert create.status_code == 201
 
     # Update with a new bot token + channel allowlist.
@@ -115,9 +113,7 @@ def test_patch_adapter_replaces_entry_and_restarts(client: TestClient) -> None:
 def test_patch_adapter_404_for_unknown(client: TestClient) -> None:
     from tests.conftest import make_discord_adapter_entry
 
-    response = client.patch(
-        "/v1/adapters/missing", json=make_discord_adapter_entry(name="missing")
-    )
+    response = client.patch("/v1/adapters/missing", json=make_discord_adapter_entry(name="missing"))
     assert response.status_code == 404
 
 
